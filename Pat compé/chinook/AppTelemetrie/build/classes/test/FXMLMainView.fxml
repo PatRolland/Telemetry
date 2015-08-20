@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="720.0" prefWidth="1280.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="test.FXMLMainViewController">
+  <children>
+    <MenuBar layoutY="2.0" prefWidth="1280.0">
+      <menus>
+        <Menu mnemonicParsing="false" text="File">
+          <items>
+            <MenuItem mnemonicParsing="false" onAction="#handleOpenMenu" text="Open" fx:id="OpenMenuItem" />
+            <MenuItem mnemonicParsing="false" text="Close" />
+          </items>
+        </Menu>
+        <Menu mnemonicParsing="false" text="Edit">
+          <items>
+            <MenuItem mnemonicParsing="false" onAction="#handleMenuItem_New" onMenuValidation="#handleMenuItem_New" text="New" fx:id="New_MenuItem" />
+            <MenuItem mnemonicParsing="false" text="Delete" />
+          </items>
+        </Menu>
+        <Menu mnemonicParsing="false" text="Help">
+          <items>
+            <MenuItem mnemonicParsing="false" text="About" />
+          </items>
+        </Menu>
+      </menus>
+    </MenuBar>
+    <Label layoutX="29.0" layoutY="314.0" text="RPM Roue" />
+    <TextField layoutX="30.0" layoutY="331.0" />
+    <Label layoutX="30.0" layoutY="364.0" text="RPM Éolienne" />
+    <TextField layoutX="30.0" layoutY="381.0" />
+    <Label layoutX="30.0" layoutY="414.0" text="Torque" />
+    <TextField layoutX="30.0" layoutY="431.0" />
+    <Label layoutX="30.0" layoutY="464.0" text="Thrust" />
+    <TextField layoutX="30.0" layoutY="481.0" />
+    <Label layoutX="30.0" layoutY="514.0" text="Vitesse véhicule" />
+    <TextField layoutX="30.0" layoutY="533.0" />
+    <Label layoutX="30.0" layoutY="564.0" text="Pitch" />
+    <TextField layoutX="30.0" layoutY="581.0" />
+    <Label layoutX="30.0" layoutY="614.0" text="Transmission ratio" />
+    <TextField layoutX="30.0" layoutY="631.0" />
+    <Label layoutX="30.0" layoutY="664.0" text="Power éolienne" />
+    <TextField layoutX="30.0" layoutY="681.0" />
+    <ListView fx:id="DocumentList" layoutX="27.0" layoutY="104.0" prefHeight="200.0" prefWidth="149.0" />
+    <Label layoutX="27.0" layoutY="81.0" text="Fichers" />
+    <CheckBox fx:id="CheckBox_Theorique" layoutX="201.0" layoutY="26.0" mnemonicParsing="false" onAction="#handleCheckBox_Theorique" text="Théorique" />
+    <CheckBox fx:id="CheckBox_Pratique" layoutX="285.0" layoutY="26.0" mnemonicParsing="false" onAction="#handleCheckBox_Pratique" text="Pratique" />
+    <AreaChart fx:id="RPMROUE_Chart" animated="false" layoutX="198.0" layoutY="97.0" prefHeight="556.0" prefWidth="987.0">
+      <xAxis>
+        <NumberAxis side="BOTTOM" />
+      </xAxis>
+      <yAxis>
+        <NumberAxis side="LEFT" />
+      </yAxis>
+    </AreaChart>
+    <Label layoutX="659.0" layoutY="664.0" text="Vitesse Vent" />
+  </children>
+</AnchorPane>
