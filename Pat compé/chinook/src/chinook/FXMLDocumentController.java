@@ -92,6 +92,8 @@ public class FXMLDocumentController implements Initializable {
     static Enumeration portList;
     int startlogindex = 0;
     
+    String PORT_NAME = "COM18";
+    
     DataLogger dataLogger;
     
     ArrayList<FXMLGraphController> Graphs;
@@ -176,17 +178,17 @@ public class FXMLDocumentController implements Initializable {
     
     @FXML public void handleStartHorn(MouseEvent event)
     {
-        serialComm.sendString("k");
+        serialComm.sendSerialMessage("k");
     }
     
     @FXML public void handleStopHorn(MouseEvent event)
     {
-        serialComm.sendString("l");
+        serialComm.sendSerialMessage("l");
     }
     
     @FXML public void handleSendCommand(ActionEvent event)
     {
-        serialComm.sendString(textFieldCommand.getText());
+        serialComm.sendSerialMessage(textFieldCommand.getText());
     }
     
     @FXML public void handleAddGraphButton(ActionEvent event)throws IOException {
@@ -200,10 +202,12 @@ public class FXMLDocumentController implements Initializable {
         while (portList.hasMoreElements()) {
             portId = (CommPortIdentifier) portList.nextElement();
             if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-                 if (portId.getName().equals("COM10")) {
-			//                if (portId.getName().equals("/dev/term/a")) {
-                        serialComm = new SerialCommunication(portId, dataLogger);
-                 }
+                System.out.println("Searching for connection..");
+                if (portId.getName().equals(PORT_NAME)) {
+                    
+                    System.out.println("Connection to " + PORT_NAME + " established.");
+                    serialComm = new SerialCommunication(portId, dataLogger);
+                }
             }
         }
         //</editor-fold>

@@ -8,12 +8,12 @@ package chinook;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Enumeration;
 import java.util.LinkedList;
-import java.util.StringTokenizer;
 import java.util.TooManyListenersException;
-import java.util.TreeMap;
 import javax.comm.CommPortIdentifier;
 import javax.comm.PortInUseException;
 import javax.comm.SerialPort;
@@ -33,20 +33,15 @@ public class SerialCommunication implements SerialPortEventListener {
     SerialPort serialPort;
     
     DataLogger Logger;
-    
-    ByteBuffer buff = ByteBuffer.allocate(16+1+4*8+1);
-    byte[] readBuffer = new byte[1000];
+    int readBufferSize = 280;
+    byte[] readBuffer = new byte[readBufferSize];
     int bytesRead = 0;
     int readValues = 0;
     int lines = 0;
-    boolean LineRead = true;
     
-    
-    int eventslogged = 0;
-    TreeMap<Integer,Integer> map = new TreeMap<>();
     LinkedList<String> valuesString = new LinkedList<>();
-    
-    boolean SystemReady = false;
+    LinkedList<Float> values = new LinkedList<>();
+
     
     public SerialCommunication(CommPortIdentifier portid, DataLogger logger) {
         Logger = logger;
@@ -64,26 +59,32 @@ public class SerialCommunication implements SerialPortEventListener {
 	} catch (TooManyListenersException e) {System.out.println(e);}
         serialPort.notifyOnDataAvailable(true);
         try {
-            serialPort.setSerialPortParams(57600,
+            serialPort.setSerialPortParams(9600,
                 SerialPort.DATABITS_8,
                 SerialPort.STOPBITS_1,
                 SerialPort.PARITY_NONE);
         } catch (UnsupportedCommOperationException e) {System.out.println(e);}
+        sendStartCommand();
     }
     
     public Boolean sendStartCommand()
     {
-        return sendString("Is this the real life?");        
+        Integer message = 0xDEADBEEF;
+        return sendSerialMessage(message);        
     }
-    public Boolean sendString(String message)
+    
+    public Boolean sendSerialMessage(Object message)
     {
         Boolean succes = true;
-        try
-        {
-            outputStream.write(message.getBytes());
+        try {
+            if(message instanceof String) {
+                outputStream.write(((String)message).getBytes());
+            }
+            else if (message instanceof Integer) {
+                outputStream.write((Integer)message);
+            }
         }
-        catch(IOException e)
-        {
+        catch(IOException e) {
             succes = false;
         }
         return succes;
@@ -97,8 +98,7 @@ public class SerialCommunication implements SerialPortEventListener {
             serialPort.close();
         } catch (IOException ex) {
             
-        }
-        
+        }        
     }
 
  
@@ -118,72 +118,105 @@ public class SerialCommunication implements SerialPortEventListener {
             case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
                 break;
             case SerialPortEvent.DATA_AVAILABLE:
-                byte read[] = new byte[200];
                 int data;
                 int len = 0;
                 try {
                     while((data = inputStream.read()) > -1)
                     {
-                        if(data == '\r') {
-                            break;
+                        if(len == readBufferSize -1) {
+                            len = 0;
+                            StringBuilder sb = new StringBuilder();
+            
+                            for(int i = 0; i < readBuffer.length; ++i) {
+                                sb.append(String.format("%02X ", readBuffer[i]));
+                            }
+                            System.out.println(sb.toString());
+                           Runnable thread = new ByteBufferRunnable(readBuffer);
+                           thread.run();
                         }
-                        if(data == '\n') {
-                            break;
-                        }                        
-                        if(data == '\t') {
-                            readValues++;
-                        }
-                        readBuffer[len++] = (byte) data;
-                    }
-                    System.out.print(new String(readBuffer, 0, len) + "\n");
-                    
-                    if(readValues >= 11)
-                    {
-                        String message = new String(readBuffer);
-                        //System.out.println(message);
-                        StringTokenizer st = new StringTokenizer(message, "\t");
-                                
-                        while(st.hasMoreElements())
-                        {
-                            String element = st.nextElement().toString();                                    
-                            valuesString.add(element);
-                        }
-                                
-                        
-                        System.out.println(valuesString);
-                        // System.out.println(bytesRead);
-                        writeDemValues();
-                                
-                        valuesString = new LinkedList<>();
-                        eventslogged++;
-                        readBuffer = new byte[1000];
-                        bytesRead = 0;
-                        readValues = 0;
-                    }
-                    readValues = 0;
-                    
+                        readBuffer[len++] = (byte) data;                        
+                    }             
                 } catch (IOException e) {
-                    System.out.println(e);}
+                    System.out.println(e);
+                }
                 break;
         }
     }
     
+    private static final Float HEADER = -898989.0f;
+    private static final Float FOOTER = -909090.0f;
+
+    private float id = 0;
+    
+    public class ByteBufferRunnable implements Runnable {
+
+        private byte[] var;
+        boolean startRead = false;
+
+        public ByteBufferRunnable(byte[] var) {
+            this.var = var;
+        }
+
+        public void run() {
+            ByteBuffer byteBuffer = ByteBuffer.wrap(var).order(ByteOrder.LITTLE_ENDIAN);
+            for(int readValues = 0; byteBuffer.hasRemaining();) {
+                Float f = null;
+                try {
+                    f = byteBuffer.getFloat();
+                }
+                catch(BufferUnderflowException e) {
+                    break;
+                }
+                if(HEADER.equals(f)) {
+                    System.out.println("HEADER");
+                    startRead = true;
+                }
+                else if(FOOTER.equals(f)) {
+                    System.out.println("FOOTER");
+                    readValues = 0;
+                    startRead = false;
+                }
+                else if(startRead){    
+                    values.add(f);
+                   
+                    System.out.println("Value #" + ++readValues + ": " + f);
+                     if(readValues == 12) {
+                        
+                        writeDemValues();
+                        values = new LinkedList<>();
+                    }
+                    
+                }                 
+                else {
+                    int position = byteBuffer.position();
+                    if(position < byteBuffer.capacity()) {
+                        byteBuffer.position(position - 3); //-4 bytes per float + 1 byte
+                    }
+                }                    
+            }
+            if(byteBuffer.remaining() > 0){
+                System.out.println("Remaining " + byteBuffer.remaining());
+            }
+        }
+    }
+
+    
     private void writeDemValues()
     {
         try{
-        int   Id                = Integer.parseInt(valuesString.pop());
-        int   Gear              = Integer.parseInt(valuesString.pop());
-        float VitVent           = Float.parseFloat(valuesString.pop());
-        float DirVent           = Float.parseFloat(valuesString.pop());
-        float DirRelativeMat    = Float.parseFloat(valuesString.pop());
-        float RPMEolienne       = Float.parseFloat(valuesString.pop());
-        float RPMRoue           = Float.parseFloat(valuesString.pop());
-        float Pitch             = Float.parseFloat(valuesString.pop());
-        float Thrust            = Float.parseFloat(valuesString.pop());
-        float Torque            = Float.parseFloat(valuesString.pop());
+        float   Id              = values.pop();
+        float   Gear            = values.pop();
+        float VitVent           = values.pop();
+        float DirVent           = values.pop();
+        float DirRelativeMat    = values.pop();
+        float RPMEolienne       = values.pop();
+        float RPMRoue           = values.pop();
+        float Pitch             = values.pop();
+        float Thrust            = values.pop();
+        float Torque            = values.pop();
         float Power             = -(RPMEolienne*Torque)+(VitVent*Thrust);
-        float BatteryVoltage    = Float.parseFloat(valuesString.pop());
-        float BatteryAmp        = Float.parseFloat(valuesString.pop());
+        float BatteryVoltage    = values.pop();
+        float BatteryAmp        = values.pop();
         
         
         Logger.startTimer();
