@@ -5,6 +5,7 @@
  */
 package chinook;
 
+import gnu.io.CommPortIdentifier;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -40,7 +41,6 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javax.comm.CommPortIdentifier;
 
 /**
  *
@@ -92,7 +92,7 @@ public class FXMLDocumentController implements Initializable {
     static Enumeration portList;
     int startlogindex = 0;
     
-    String PORT_NAME = "COM18";
+    String PORT_NAME = "COM8";
     
     DataLogger dataLogger;
     

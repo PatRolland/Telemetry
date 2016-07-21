@@ -5,6 +5,12 @@
  */
 package chinook;
 
+import gnu.io.CommPortIdentifier;
+import gnu.io.PortInUseException;
+import gnu.io.SerialPort;
+import gnu.io.SerialPortEvent;
+import gnu.io.SerialPortEventListener;
+import gnu.io.UnsupportedCommOperationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,12 +20,6 @@ import java.nio.ByteOrder;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.TooManyListenersException;
-import javax.comm.CommPortIdentifier;
-import javax.comm.PortInUseException;
-import javax.comm.SerialPort;
-import javax.comm.SerialPortEvent;
-import javax.comm.SerialPortEventListener;
-import javax.comm.UnsupportedCommOperationException;
 
 /**
  *
@@ -49,21 +49,23 @@ public class SerialCommunication implements SerialPortEventListener {
         
        try {
             serialPort = (SerialPort) portid.open("SimpleReadApp", 2000);
-        } catch (PortInUseException e) {System.out.println(e);}
-        try {
             inputStream = serialPort.getInputStream();
             outputStream = serialPort.getOutputStream();
-        } catch (IOException e) {System.out.println(e);}
-	try {
             serialPort.addEventListener(this);
-	} catch (TooManyListenersException e) {System.out.println(e);}
-        serialPort.notifyOnDataAvailable(true);
-        try {
+            serialPort.notifyOnDataAvailable(true);
+            
             serialPort.setSerialPortParams(9600,
                 SerialPort.DATABITS_8,
                 SerialPort.STOPBITS_1,
                 SerialPort.PARITY_NONE);
-        } catch (UnsupportedCommOperationException e) {System.out.println(e);}
+        } catch (PortInUseException | 
+                UnsupportedCommOperationException | 
+                IOException |
+                TooManyListenersException e) 
+        {
+            System.out.println(e);
+        }
+        
         sendStartCommand();
     }
     
