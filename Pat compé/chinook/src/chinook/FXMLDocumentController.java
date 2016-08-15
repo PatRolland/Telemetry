@@ -207,6 +207,7 @@ public class FXMLDocumentController implements Initializable {
                     
                     System.out.println("Connection to " + PORT_NAME + " established.");
                     serialComm = new SerialCommunication(portId, dataLogger);
+                    break;
                 }
             }
         }
@@ -221,9 +222,10 @@ public class FXMLDocumentController implements Initializable {
             while (portList.hasMoreElements()) {
             portId = (CommPortIdentifier) portList.nextElement();
             if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-                 if (portId.getName().equals("COM12")) {
+                 if (portId.getName().equals(PORT_NAME)) {
 			//                if (portId.getName().equals("/dev/term/a")) {
                         serialComm = new SerialCommunication(portId, dataLogger);
+                        break;
                  }
                  else
                  {

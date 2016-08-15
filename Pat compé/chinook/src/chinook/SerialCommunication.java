@@ -20,6 +20,7 @@ import java.nio.ByteOrder;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.TooManyListenersException;
+import java.util.logging.Level;
 
 /**
  *
@@ -69,24 +70,47 @@ public class SerialCommunication implements SerialPortEventListener {
         sendStartCommand();
     }
     
-    public Boolean sendStartCommand()
+    
+    public void sendStartCommand()
     {
-        Integer message = 0xDEADBEEF;
-        return sendSerialMessage(message);        
+        byte[] data = new byte[] {(byte)0xDE, (byte)0xAD, (byte)0xBE, (byte)0xEF};
+        byte[] dataInv = new byte[] {(byte)0xEF, (byte)0xBE, (byte)0xAD, (byte)0xDE};
+        try {       
+            outputStream.write(data);
+            outputStream.write(dataInv);
+            System.out.println("Start serial command sent successfully");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+    
+    public Boolean sendStopMessage() {
+        return sendSerialMessage(0xCAFED00D);
     }
     
     public Boolean sendSerialMessage(Object message)
     {
         Boolean succes = true;
         try {
+            
             if(message instanceof String) {
                 outputStream.write(((String)message).getBytes());
             }
             else if (message instanceof Integer) {
                 outputStream.write((Integer)message);
             }
+            else {
+                System.out.println("Message sent: " );
+                
+                for(byte b : ((byte[])message)) {
+                    System.out.print(b);
+                    outputStream.write(b);
+                }
+                System.out.println();
+            }
         }
         catch(IOException e) {
+            System.out.println("Could not send message: " + message);
             succes = false;
         }
         return succes;
@@ -104,7 +128,7 @@ public class SerialCommunication implements SerialPortEventListener {
     }
 
  
-
+    byte[] remaining = new byte[0];
     @Override
     public void serialEvent(SerialPortEvent event) {
         switch(event.getEventType()) {
@@ -133,7 +157,7 @@ public class SerialCommunication implements SerialPortEventListener {
                                 sb.append(String.format("%02X ", readBuffer[i]));
                             }
                             System.out.println(sb.toString());
-                           Runnable thread = new ByteBufferRunnable(readBuffer);
+                           ByteBufferRunnable thread = new ByteBufferRunnable(readBuffer);
                            thread.run();
                         }
                         readBuffer[len++] = (byte) data;                        
@@ -159,8 +183,19 @@ public class SerialCommunication implements SerialPortEventListener {
             this.var = var;
         }
 
+        public byte[] concat(byte[] a, byte[] b) {
+            int aLen = a.length;
+            int bLen = b.length;
+            byte[] c= new byte[aLen+bLen];
+            System.arraycopy(a, 0, c, 0, aLen);
+            System.arraycopy(b, 0, c, aLen, bLen);
+            return c;
+         }
         public void run() {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(var).order(ByteOrder.LITTLE_ENDIAN);
+            
+            byte[] buffer = concat(remaining,var);
+            
+            ByteBuffer byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN);
             for(int readValues = 0; byteBuffer.hasRemaining();) {
                 Float f = null;
                 try {
@@ -198,6 +233,10 @@ public class SerialCommunication implements SerialPortEventListener {
             }
             if(byteBuffer.remaining() > 0){
                 System.out.println("Remaining " + byteBuffer.remaining());
+                remaining = new byte[byteBuffer.remaining()];
+                for(int i = 0; i < remaining.length; ++i) {
+                    remaining[i] = byteBuffer.get();
+                }
             }
         }
     }
